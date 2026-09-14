@@ -40,10 +40,12 @@
 
 먼저 1~2주차에서 선택한 데이터를 다시 불러오세요. 파일명은 본인의 데이터에 맞게 바꿔주세요.
 
+> 2주차는 일별 승하차 데이터를 썼지만, 이번 주는 새로 받은 **시간대별 승하차 데이터**로 진행.
+
 ```python
 import pandas as pd
 
-df = pd.read_csv("파일경로.csv")
+df = pd.read_csv("data/서울시 지하철 호선별 역별 시간대별 승하차 인원 정보.csv", encoding="cp949")
 ```
 
 ## 1. 데이터 품질 점검
@@ -62,18 +64,13 @@ print(df.duplicated().sum())
 아래 예시 중 하나를 선택해 사용하고, 선택한 기준을 함께 설명하세요.
 
 ```python
-# 방법 1: 결측치 채우기
-df_clean = df.copy()
-df_clean["컬럼명"] = df_clean["컬럼명"].fillna("Unknown")
-
-# 방법 2: 결측치가 있는 행 제거
-df_clean = df.dropna().copy()
+df_clean = df.copy()  # 결측치가 없어 별도 처리 없이 그대로 사용
 ```
 
 ```md
-결측치가 있는 컬럼:
-사용한 처리 방법:
-그 방법을 선택한 이유:
+결측치가 있는 컬럼: 없음
+사용한 처리 방법: 없음 (처리할 결측치 자체가 없음)
+그 방법을 선택한 이유: isna().sum() 결과가 모든 컬럼에서 0이었다.
 ```
 
 ## 3. 중복 처리
@@ -85,19 +82,26 @@ df_clean = df_clean.drop_duplicates().copy()
 print(df_clean.duplicated().sum())
 ```
 
+결과: 완전 중복행 1,241건 발견 → 제거 후 84,838행 → 83,597행.
+
 ## 4. 이상치 확인
 
 분석에 중요한 숫자형 컬럼 1~2개를 골라 너무 크거나 작은 값이 있는지 확인하세요.
 
 ```python
-print(df_clean["숫자컬럼"].describe())
-print(df_clean.sort_values("숫자컬럼", ascending=False).head(10))
+col = "18시-19시 승차인원"
+print(df_clean[col].describe())
+print(df_clean.sort_values(col, ascending=False).head(10))
 ```
 
 ```md
-확인한 숫자 컬럼:
+확인한 숫자 컬럼: 18시-19시 승차인원 (퇴근 시간대 승차 인원)
 이상해 보이는 값:
-처리 여부와 이유:
+  - 최댓값 448,390이 전부 2호선 강남역 → 강남역의 실제 저녁 수요로 보여 오류는 아니다.
+  - 값이 0인 행이 다수 있음(경의선 김포공항·검암·계양, 7호선 까치울, 경원선 창동 등) → 해당 노선
+    구간에 그 시간대 운행 자체가 없어서로 추정된다.
+처리 여부와 이유: 둘 다 삭제하지 않았다. 최댓값은 정상적인 실제 수요이고, 0값은 오류인지 운행
+미실시인지 아직 확실하지 않아 이번 주는 그대로 남겨두고 다음 주 분석 때 참고하기로 했다.
 ```
 
 ## 5. 정제 데이터 저장
@@ -105,7 +109,7 @@ print(df_clean.sort_values("숫자컬럼", ascending=False).head(10))
 전처리한 데이터를 다음 주차에도 사용할 수 있도록 저장하세요.
 
 ```python
-df_clean.to_csv("cleaned_data.csv", index=False)
+df_clean.to_csv("data/cleaned_지하철_시간대별_승하차.csv", index=False)
 ```
 
 ---
@@ -115,19 +119,21 @@ df_clean.to_csv("cleaned_data.csv", index=False)
 데이터 타입이 잘못 읽힌 컬럼이 있다면 변환해보세요. 예를 들어 숫자가 문자로 읽히거나 날짜가 문자로 읽힌 경우가 있을 수 있습니다.
 
 ```python
-df_clean["숫자컬럼"] = df_clean["숫자컬럼"].astype(float)
-df_clean["날짜컬럼"] = pd.to_datetime(df_clean["날짜컬럼"])
+df_clean["사용월"] = pd.to_datetime(df_clean["사용월"], format="%Y%m")
+df_clean["작업일자"] = pd.to_datetime(df_clean["작업일자"], format="%Y%m%d")
 ```
+
+`사용월`(202608), `작업일자`(20260903)가 숫자로 읽혀서 날짜 계산이 안 됐는데, `datetime64`로 바꿔서 해결했다.
 
 ---
 
 # 3️⃣ 제출 체크리스트
 
-- [ ] 결측치와 중복을 확인했다.
-- [ ] 결측치 처리 기준을 작성했다.
-- [ ] 중복 처리 여부를 작성했다.
-- [ ] 숫자형 컬럼 1개 이상에서 이상치를 확인했다.
-- [ ] 정제한 데이터를 저장했다.
+✅ 결측치와 중복을 확인했다.
+✅ 결측치 처리 기준을 작성했다.
+✅ 중복 처리 여부를 작성했다.
+✅ 숫자형 컬럼 1개 이상에서 이상치를 확인했다.
+✅ 정제한 데이터를 저장했다.
 
 🎉 수고하셨습니다.  
 다음 주에는 정제한 데이터를 바탕으로 탐색적 데이터 분석을 진행합니다.
